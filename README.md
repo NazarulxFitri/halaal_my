@@ -1,40 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# Halal Food Checker
 
-## Getting Started
+Phase 1 implementation of a halal checking web app using local keyword matching.
 
-First, run the development server:
+## Phase 1 scope
+
+This phase is intentionally simple and frontend-only:
+
+- No backend/API routes
+- No database
+- No OCR
+- One input field for food/product text
+- Immediate local classification result on submit
+
+## Current logic (Phase 1)
+
+Input is classified by checking for haram-related keywords.
+
+- If the text contains any haram keyword, status is `non_halal`
+- If no haram keyword is found, status is `halal`
+- If input is empty, status is `unknown`
+
+Current haram keyword list:
+
+- `pork`
+- `babi`
+- `khinzir`
+- `lard`
+- `arak`
+- `wine`
+- `beer`
+- `rum`
+- `vodka`
+- `ham`
+- `bacon`
+
+## UI and theme
+
+The app UI is built with Material UI and includes:
+
+- Card-based page layout
+- Text field input and action button
+- Result panel with status chip and reasons list
+- Mandatory disclaimer section
+
+Global MUI theme is configured in `src/theme.ts`:
+
+- Primary: `#2AAA8A`
+- Secondary: `#C1E1C1`
+
+Theme is applied app-wide in `src/pages/_app.tsx` with `ThemeProvider` and `CssBaseline`.
+
+## Project structure (Phase 1)
+
+- `src/pages/index.tsx` - main halal checker page and local classification logic
+- `src/pages/_app.tsx` - global app wrapper with MUI theme provider
+- `src/theme.ts` - Material UI theme configuration
+- `src/lib/types.ts` - shared TypeScript types
+
+## Mandatory disclaimer
+
+The app displays this notice to avoid claiming certification:
+
+> This result is generated based on available data and ingredient analysis. It is not a certified halal verification. Please refer to official authorities for confirmation.
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Quick test cases
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+- `Ayam Goreng KFC` -> expected: `halal`
+- `Burger babi` -> expected: `non_halal`
+- `Chicken with wine sauce` -> expected: `non_halal`
+- empty input -> expected: `unknown`
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Tech stack
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js (Pages Router)
+- React
+- TypeScript
+- Material UI
 
-## Learn More
+## Next phase ideas
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+- Add backend API routes
+- Add product/source verification flow
+- Add OCR image input
+- Add richer rules and confidence scoring
+# halaal_my
