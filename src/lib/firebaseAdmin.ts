@@ -80,18 +80,27 @@ export function isFirebaseConfigured(): boolean {
   return parseServiceAccount() !== null;
 }
 
-let dbPromise: Promise<Firestore | null> | null = null;
-
-export function getFirebaseDb(): Promise<Firestore | null> {
-  if (!isFirebaseConfigured()) {
-    return Promise.resolve(null);
+export function getFirebaseConfigError(): string {
+  const accountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+  if (accountPath) {
+    return `Could not read Firebase service account at "${accountPath}". Download it from Firebase Console → Project settings → Service accounts → Generate new private key, save as firebase-service-account.json, then restart the dev server.`;
   }
 
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    return "FIREBASE_SERVICE_ACCOUNT is set but invalid. Check that the JSON is on one line and correctly formatted.";
+  }
+
+  return "Firebase is not configured. Add FIREBASE_SERVICE_ACCOUNT_PATH=firebase-service-account.json to .env.local and place your service account JSON in the project root.";
+}
+
+let dbPromise: Promise<Firestore> | null = null;
+
+export function getFirebaseDb(): Promise<Firestore> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const serviceAccount = parseServiceAccount();
       if (!serviceAccount) {
-        return null;
+        throw new Error(getFirebaseConfigError());
       }
 
       const { cert, getApps, initializeApp } = await import("firebase-admin/app");

@@ -37,9 +37,13 @@ type CheckMode = "text" | "image";
 
 type HomePageProps = {
   initialKeywordLists: KeywordLists;
+  configError?: string;
 };
 
-export default function HomePage({ initialKeywordLists }: HomePageProps) {
+export default function HomePage({
+  initialKeywordLists,
+  configError,
+}: HomePageProps) {
   const [checkMode, setCheckMode] = useState<CheckMode>("text");
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<HalalCheckResult | null>(null);
@@ -130,6 +134,7 @@ export default function HomePage({ initialKeywordLists }: HomePageProps) {
           <Card elevation={3} sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Stack spacing={3}>
+                {configError && <Alert severity="error">{configError}</Alert>}
                 <Box>
                   <Typography
                     variant="h4"
@@ -321,6 +326,19 @@ export default function HomePage({ initialKeywordLists }: HomePageProps) {
 export const getServerSideProps: GetServerSideProps<
   HomePageProps
 > = async () => {
+  const { getFirebaseConfigError, isFirebaseConfigured } = await import(
+    "@/lib/firebaseAdmin"
+  );
+
+  if (!isFirebaseConfigured()) {
+    return {
+      props: {
+        initialKeywordLists: { haram: [], syubhah: [] },
+        configError: getFirebaseConfigError(),
+      },
+    };
+  }
+
   const { getKeywordLists } = await import("@/lib/keywordStore");
   const initialKeywordLists = await getKeywordLists();
   return { props: { initialKeywordLists } };

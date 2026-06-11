@@ -32,6 +32,7 @@ import type { KeywordCategory, KeywordLists } from "@/lib/types";
 type AdminPageProps = {
   initialKeywordLists: KeywordLists;
   isAuthenticated: boolean;
+  configError?: string;
 };
 
 type PendingMove = {
@@ -123,6 +124,7 @@ function KeywordSection({
 export default function AdminPage({
   initialKeywordLists,
   isAuthenticated: initialAuthenticated,
+  configError,
 }: AdminPageProps) {
   const [authenticated, setAuthenticated] = useState(initialAuthenticated);
   const [keywordLists, setKeywordLists] = useState<KeywordLists>(initialKeywordLists);
@@ -281,7 +283,9 @@ export default function AdminPage({
           <Card elevation={3} sx={{ borderRadius: 3 }}>
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
               <Stack spacing={3}>
-                {!authenticated ? (
+                {configError ? (
+                  <Alert severity="error">{configError}</Alert>
+                ) : !authenticated ? (
                   <AdminLogin
                     onAuthenticated={() => {
                       setAuthenticated(true);
@@ -425,7 +429,20 @@ export const getServerSideProps: GetServerSideProps<AdminPageProps> = async (
   context,
 ) => {
   const { isAdminAuthenticated } = await import("@/lib/adminAuth");
+  const { getFirebaseConfigError, isFirebaseConfigured } = await import(
+    "@/lib/firebaseAdmin"
+  );
   const authenticated = isAdminAuthenticated(context.req);
+
+  if (!isFirebaseConfigured()) {
+    return {
+      props: {
+        initialKeywordLists: EMPTY_LISTS,
+        isAuthenticated: false,
+        configError: getFirebaseConfigError(),
+      },
+    };
+  }
 
   if (!authenticated) {
     return { props: { initialKeywordLists: EMPTY_LISTS, isAuthenticated: false } };
