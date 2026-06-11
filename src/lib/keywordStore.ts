@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  getFirebaseDb,
+  isFirebaseConfigured,
+  KEYWORDS_COLLECTION,
+  KEYWORDS_DOC,
+} from "@/lib/firebaseAdmin";
 import type { KeywordCategory, KeywordLists } from "@/lib/types";
 
 const DEFAULT_KEYWORDS: KeywordLists = {
@@ -46,7 +52,70 @@ function otherCategory(category: KeywordCategory): KeywordCategory {
   return category === "haram" ? "syubhah" : "haram";
 }
 
-async function ensureStore(): Promise<void> {
+function parseLists(data: Partial<KeywordLists> | undefined): KeywordLists {
+  return normalizeLists({
+    haram: Array.isArray(data?.haram) ? data.haram : [],
+    syubhah: Array.isArray(data?.syubhah) ? data.syubhah : [],
+  });
+}
+
+async function readBundledKeywords(): Promise<KeywordLists | null> {
+  try {
+    const content = await readFile(dataFile, "utf-8");
+    return parseLists(JSON.parse(content) as Partial<KeywordLists>);
+  } catch {
+    return null;
+  }
+}
+
+async function seedKeywords(): Promise<KeywordLists> {
+  const bundled = await readBundledKeywords();
+  if (bundled) {
+    return bundled;
+  }
+
+  try {
+    const legacyContent = await readFile(legacyDataFile, "utf-8");
+    const legacyKeywords = JSON.parse(legacyContent) as string[];
+    return normalizeLists({
+      haram: dedupeKeywords(legacyKeywords),
+      syubhah: [],
+    });
+  } catch {
+    return DEFAULT_KEYWORDS;
+  }
+}
+
+async function readListsFromFirebase(): Promise<KeywordLists> {
+  const db = await getFirebaseDb();
+  if (!db) {
+    throw new Error("Firebase is not configured");
+  }
+
+  const docRef = db.collection(KEYWORDS_COLLECTION).doc(KEYWORDS_DOC);
+  const snapshot = await docRef.get();
+
+  if (!snapshot.exists) {
+    const seeded = await seedKeywords();
+    await docRef.set(seeded);
+    return seeded;
+  }
+
+  return parseLists(snapshot.data() as Partial<KeywordLists>);
+}
+
+async function writeListsToFirebase(lists: KeywordLists): Promise<KeywordLists> {
+  const db = await getFirebaseDb();
+  if (!db) {
+    throw new Error("Firebase is not configured");
+  }
+
+  const normalized = normalizeLists(lists);
+  await db.collection(KEYWORDS_COLLECTION).doc(KEYWORDS_DOC).set(normalized);
+  return normalized;
+}
+
+async function ensureLocalStore(): Promise<void> {
   await mkdir(dataDir, { recursive: true });
 
   try {
@@ -56,40 +125,34 @@ async function ensureStore(): Promise<void> {
     // Continue to migration or default seed.
   }
 
-  try {
-    const legacyContent = await readFile(legacyDataFile, "utf-8");
-    const legacyKeywords = JSON.parse(legacyContent) as string[];
-    const migrated: KeywordLists = {
-      haram: dedupeKeywords(legacyKeywords),
-      syubhah: [],
-    };
-    await writeFile(dataFile, JSON.stringify(migrated, null, 2), "utf-8");
-    return;
-  } catch {
-    // No legacy file; seed defaults.
-  }
-
-  await writeFile(
-    dataFile,
-    JSON.stringify(DEFAULT_KEYWORDS, null, 2),
-    "utf-8",
-  );
+  const seeded = await seedKeywords();
+  await writeFile(dataFile, JSON.stringify(seeded, null, 2), "utf-8");
 }
 
-async function readLists(): Promise<KeywordLists> {
-  await ensureStore();
+async function readListsFromFile(): Promise<KeywordLists> {
+  await ensureLocalStore();
   const content = await readFile(dataFile, "utf-8");
-  const parsed = JSON.parse(content) as Partial<KeywordLists>;
-  return normalizeLists({
-    haram: Array.isArray(parsed.haram) ? parsed.haram : [],
-    syubhah: Array.isArray(parsed.syubhah) ? parsed.syubhah : [],
-  });
+  return parseLists(JSON.parse(content) as Partial<KeywordLists>);
 }
 
-async function writeLists(lists: KeywordLists): Promise<KeywordLists> {
+async function writeListsToFile(lists: KeywordLists): Promise<KeywordLists> {
   const normalized = normalizeLists(lists);
   await writeFile(dataFile, JSON.stringify(normalized, null, 2), "utf-8");
   return normalized;
+}
+
+async function readLists(): Promise<KeywordLists> {
+  if (isFirebaseConfigured()) {
+    return readListsFromFirebase();
+  }
+  return readListsFromFile();
+}
+
+async function writeLists(lists: KeywordLists): Promise<KeywordLists> {
+  if (isFirebaseConfigured()) {
+    return writeListsToFirebase(lists);
+  }
+  return writeListsToFile(lists);
 }
 
 export async function getKeywordLists(): Promise<KeywordLists> {
