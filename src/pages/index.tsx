@@ -1,4 +1,3 @@
-import Head from "next/head";
 import type { GetServerSideProps } from "next";
 import { ChangeEvent, FormEvent, MouseEvent, useRef, useState } from "react";
 import {
@@ -20,7 +19,9 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
+import Seo from "@/components/Seo";
 import { classifyInput } from "@/lib/classify";
+import { DEFAULT_DESCRIPTION, HOME_TITLE } from "@/lib/site";
 import type { HalalCheckResult, KeywordLists } from "@/lib/types";
 
 const DISCLAIMER =
@@ -113,14 +114,7 @@ export default function HomePage({
 
   return (
     <>
-      <Head>
-        <title>Halal Food Checker</title>
-        <meta
-          name="description"
-          content="Phase 2 halal checker using text and image OCR keyword mapping"
-        />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      <Seo title={HOME_TITLE} description={DEFAULT_DESCRIPTION} path="/" />
       <Box
         sx={{
           minHeight: "100vh",
@@ -141,7 +135,7 @@ export default function HomePage({
                     sx={{ fontWeight: 700 }}
                     gutterBottom
                   >
-                    Halal Food Checker
+                    Haalal.my
                   </Typography>
                   <Typography color="text.secondary">
                     Check ingredients by typing a product name or scanning a
@@ -169,8 +163,8 @@ export default function HomePage({
                           Check by Keyword
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Enter a food or product name to check against haram and
-                          syubhah keywords.
+                          Enter a food or product name to check against haram
+                          and syubhah keywords.
                         </Typography>
                       </Box>
                       <Box
@@ -200,9 +194,9 @@ export default function HomePage({
                           Scan Product Label
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          Upload a clear, well-lit label image. Stylized fonts are
-                          harder to read, so results work best on standard printed
-                          ingredient lists.
+                          Upload a clear, well-lit label image. Stylized fonts
+                          are harder to read, so results work best on standard
+                          printed ingredient lists.
                         </Typography>
                       </Box>
                       <Stack
@@ -326,9 +320,8 @@ export default function HomePage({
 export const getServerSideProps: GetServerSideProps<
   HomePageProps
 > = async () => {
-  const { getFirebaseConfigError, isFirebaseConfigured } = await import(
-    "@/lib/firebaseAdmin"
-  );
+  const { getFirebaseConfigError, isFirebaseConfigured } =
+    await import("@/lib/firebaseAdmin");
 
   if (!isFirebaseConfigured()) {
     return {

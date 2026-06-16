@@ -1,4 +1,3 @@
-import Head from "next/head";
 import { FormEvent, useState } from "react";
 import {
   Alert,
@@ -25,6 +24,7 @@ import { alpha } from "@mui/material/styles";
 import type { GetServerSideProps } from "next";
 
 import AdminLogin from "@/components/AdminLogin";
+import Seo from "@/components/Seo";
 import { categoryLabel } from "@/lib/keywordLabels";
 import { getKeywordLists } from "@/lib/keywordStore";
 import type { KeywordCategory, KeywordLists } from "@/lib/types";
@@ -267,9 +267,12 @@ export default function AdminPage({
 
   return (
     <>
-      <Head>
-        <title>Admin Mapping | Halal Food Checker</title>
-      </Head>
+      <Seo
+        title="Admin Keyword Mapping"
+        description="Private admin area for managing halal keyword lists."
+        path="/admin"
+        noIndex
+      />
       <Box
         sx={{
           minHeight: "100vh",
