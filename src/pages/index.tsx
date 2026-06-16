@@ -20,6 +20,7 @@ import {
 import { alpha } from "@mui/material/styles";
 
 import Seo from "@/components/Seo";
+import { trackEvent } from "@/lib/analytics";
 import { classifyInput } from "@/lib/classify";
 import { DEFAULT_DESCRIPTION, HOME_TITLE } from "@/lib/site";
 import type { HalalCheckResult, KeywordLists } from "@/lib/types";
@@ -58,7 +59,15 @@ export default function HomePage({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setResult(classifyInput(query, keywordLists));
+    const trimmedQuery = query.trim();
+    const checkResult = classifyInput(trimmedQuery, keywordLists);
+    setResult(checkResult);
+
+    trackEvent("text_check", {
+      check_mode: "text",
+      query_length: trimmedQuery.length,
+      result_status: checkResult.status,
+    });
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -96,17 +105,37 @@ export default function HomePage({
       return;
     }
 
+    const imageType = selectedImage.type || "unknown";
+    const imageSizeKb = Math.round(selectedImage.size / 1024);
+
     try {
       setOcrLoading(true);
       setOcrError("");
       const { scanImageForText } = await import("@/lib/ocrScan");
       const { text } = await scanImageForText(selectedImage, keywordLists);
+      const checkResult = classifyInput(text, keywordLists, { fuzzy: true });
       setExtractedText(text);
-      setResult(classifyInput(text, keywordLists, { fuzzy: true }));
+      setResult(checkResult);
+
+      trackEvent("image_scan_check", {
+        check_mode: "image",
+        image_type: imageType,
+        image_size_kb: imageSizeKb,
+        extracted_text_length: text.trim().length,
+        result_status: checkResult.status,
+        success: true,
+      });
     } catch {
       setOcrError(
         "OCR failed for this image. Please try a clearer label image with better lighting.",
       );
+
+      trackEvent("image_scan_check", {
+        check_mode: "image",
+        image_type: imageType,
+        image_size_kb: imageSizeKb,
+        success: false,
+      });
     } finally {
       setOcrLoading(false);
     }
